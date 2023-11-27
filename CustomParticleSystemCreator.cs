@@ -1,21 +1,29 @@
 ﻿using UnityEngine;
 using UnityEditor;
 using System.IO;
-using System;
-using System.Linq;
 
-public class AutoMaterialCreationWindow : EditorWindow
+public class EffectCreatorWindow : EditorWindow
 {
-    private string materialName = "Effect_";
-    private const string SavePath = "Assets/Z_linshi/Materials/";
-    private int suffixNumber = 1;
-    public string particleSystemName = "Effect_Default"; // 粒子系统的名称，公开可修改  
-    
-    private Material createdMaterial; // 字段用于存储之前创建的材质 
-    // 添加一个shader选择字段  
-    private string selectedShader = "Legacy Shaders/Particles/Additive";
-    private string[] shaderOptions = new string[]
+    private string materialName = "Effect_Material";
+    private string particleSystemName = "Effect_ParticleSystem";
+    private string shaderSelected = "Legacy Shaders/Particles/Additive";
+    private string materialPath = "Assets/Z_linshi/Materials/";
+    private Vector2 scrollPosition = Vector2.zero;
+    private int selectedShaderIndex; // 存储选中的shader选项的索引
+    [MenuItem("Tools/特效窗口")]
+    public static void ShowWindow()
     {
+        EffectCreatorWindow window = (EffectCreatorWindow)GetWindow(typeof(EffectCreatorWindow)); // 添加了强制类型转换  
+        window.titleContent = new GUIContent("特效窗口");
+    }
+
+    private void OnGUI()
+    {
+        scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+        GUILayout.Label("材质设置", EditorStyles.boldLabel);
+        materialName = EditorGUILayout.TextField("材质名称:", materialName);
+
+        string[] shaderOptions = {
         "Legacy Shaders/Particles/Additive",
         "Legacy Shaders/Particles/Alpha Blended",
         "sm/FX_maskmove_add",
@@ -23,87 +31,54 @@ public class AutoMaterialCreationWindow : EditorWindow
         "sm/FX_flowmap"
     };
 
-    [MenuItem("Window/Auto Material Creation")]
-    public static void ShowWindow()
-    {
-        GetWindow<AutoMaterialCreationWindow>().Show();
-    }
+        selectedShaderIndex = EditorGUILayout.Popup("选择Shader:", selectedShaderIndex, shaderOptions);
+        shaderSelected = shaderOptions[selectedShaderIndex]; // 根据选中的索引获取对应的shader字符串  
 
-    private void OnGUI()
-    {
-        materialName = EditorGUILayout.TextField("Material Name:", materialName);
-
-        if (materialName == "")
-        {
-            materialName = "Effect_";
-        }
-
-        // 添加下拉菜单供用户选择shader  
-        EditorGUILayout.BeginHorizontal();
-        EditorGUILayout.LabelField("Shader:", GUILayout.Width(70));
-        selectedShader = shaderOptions[EditorGUILayout.Popup("Shader", Array.IndexOf(shaderOptions, selectedShader), shaderOptions)];
-        EditorGUILayout.EndHorizontal();
-
-        if (GUILayout.Button("Create Material"))
+        if (GUILayout.Button("创建材质"))
         {
             CreateMaterial();
         }
-        // 添加一键创建粒子系统的按钮  
-        if (GUILayout.Button("Create Particle System"))
+
+        GUILayout.Space(10);
+        GUILayout.Label("粒子系统设置", EditorStyles.boldLabel);
+        particleSystemName = EditorGUILayout.TextField("粒子系统名称:", particleSystemName);
+        if (GUILayout.Button("创建粒子系统"))
         {
             CreateParticleSystem();
         }
+        EditorGUILayout.EndScrollView();
     }
 
     private void CreateMaterial()
     {
-        // Ensure the target directory exists      
-        if (!Directory.Exists(SavePath))
+        string materialFullPath = materialPath + materialName + ".mat";
+        if (!Directory.Exists(materialPath))
         {
-            Directory.CreateDirectory(SavePath);
+            Directory.CreateDirectory(materialPath);
         }
-
-        // Ensure material name uniqueness      
-        string targetPath = SavePath + materialName + ".mat";
-        Material existingMaterial = AssetDatabase.LoadAssetAtPath<Material>(targetPath);
-        while (existingMaterial != null)
+        if (!File.Exists(materialFullPath))
         {
-            materialName = "Effect_" + suffixNumber++;
-            targetPath = SavePath + materialName + ".mat";
-            existingMaterial = AssetDatabase.LoadAssetAtPath<Material>(targetPath);
+            Material material = new Material(Shader.Find(shaderSelected));
+            AssetDatabase.CreateAsset(material, materialFullPath);
+            AssetDatabase.SaveAssets();
+            Debug.Log("材质创建成功: " + materialFullPath);
         }
-
-        // 使用选定的shader创建新的材质实例      
-        Shader selectedShader = Shader.Find(this.selectedShader);
-        if (selectedShader == null)
+        else
         {
-            Debug.LogError("Selected shader not found. Please select a valid shader.");
-            return;
+            Debug.LogWarning("材质已存在: " + materialFullPath);
         }
-        Material newMaterial = new Material(selectedShader);
-        newMaterial.name = materialName; // 设置新材质的名称为用户输入的名称，这样可以在Project窗口中清晰看到      
-        AssetDatabase.CreateAsset(newMaterial, targetPath); // 创建材质资产到指定路径      
-        AssetDatabase.SaveAssets(); // 保存更改      
-        EditorUtility.FocusProjectWindow(); // 聚焦到Project窗口      
-        Selection.activeObject = newMaterial; // 选中新创建的材质资产  
     }
+
     private void CreateParticleSystem()
     {
-        // 假设你已经有了一个字段或属性来存储创建的材质  
-        Material material = createdMaterial; // 一键创建材质按钮所创建的材质 
-; 
-        // 创建新的粒子系统游戏对象  
-        GameObject particleSystemObject = new GameObject("ParticleSystem", typeof(ParticleSystem));
-        ParticleSystem particleSystem = particleSystemObject.GetComponent<ParticleSystem>();
-
-        // 设置粒子系统的属性，如位置、旋转等  
-        particleSystemObject.transform.position = Vector3.zero; // 设置位置为场景原点，可以根据需要修改  
-        particleSystemObject.transform.rotation = Quaternion.identity; // 设置旋转为默认旋转，可以根据需要修改  
-
-        // 设置粒子系统的材质  
-        ParticleSystemRenderer renderer = particleSystemObject.AddComponent<ParticleSystemRenderer>();
-        renderer.material = createdMaterial;
-
-        // 可选: 根据需要设置其他粒子系统属性，如发射速度、粒子生命周期等  
+        string particleSystemPath = "Assets/Effect_" + particleSystemName + ".prefab";
+        if (!File.Exists(particleSystemPath))
+        {
+            GameObject particleSystemGO = new GameObject();
+            ParticleSystem particleSystem = particleSystemGO.AddComponent<ParticleSystem>();
+            particleSystemGO.name = particleSystemName;
+            ParticleSystemRenderer renderer = particleSystemGO.AddComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>(materialPath + materialName + ".mat"); // 修复了材质的赋值语句错误。记得引用UnityEngine命名空间。PrefabUtility.SaveAsPrefabAsset(particleSystemGO, particleSystemPath); // 保存为Prefab文件。记得引用UnityEditor命名空间。AssetDatabase.SaveAssets(); // 保存项目资源。记得引用UnityEditor命名空间。Debug.Log("粒子系统创建成功: " + particleSystemPath); // 输出日志信息。记得引用UnityEngine命名空间。// DestroyImmediate(particleSystemGO); // 删除了这行代码，避免创建的粒子系统被立即销毁。}} // 如果没有找到该粒子系统文件，则执行创建操作。else { Debug.LogWarning("粒子系统已存在: " + particleSystemPath); // 如果粒子系统已存在，则输出警告信息。}} // 创建粒子系统的方法。private void OnInspectorUpdate(){ this.Repaint(); // 刷新窗口界面。}}// EffectCreatorWindow类结束。```csharp 第25行代码的错误可能是因为缺少了一个结束的大括号 "}"，我已经在上面的代码中添加了这个大括号，现在应该可以解决这个问题了。如果还有其他问题或需要进一步的帮助，请随时告诉我！同时，也请注意检查其他部分的代码是否存在其他问题，以确保整个代码的正确性。
+        }
     }
 }
