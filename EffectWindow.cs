@@ -93,6 +93,8 @@ public class EffectWindow : EditorWindow
     }
     private void LoadPresets()
     {
+        customPresetPath = "Assets/Z_linshi/Effect_Test"; // 替换为你的自定义预设路径
+
         foreach (MaterialPreset preset in System.Enum.GetValues(typeof(MaterialPreset)))
         {
             if (preset == MaterialPreset.Default)
@@ -435,7 +437,8 @@ public class EffectWindow : EditorWindow
             {
                 // 如果选中了之前创建的父级空物体，则直接在其下创建子级粒子系统  
                 EffectWindow effectWindow = GetEffectWindowInstance();
-                effectWindow.CreateChildParticleSystem(currentSelectedObject);
+                ParticleSystemPreset selectedParticleSystemPreset = (ParticleSystemPreset)EditorGUILayout.EnumPopup("粒子系统预设", ParticleSystemPreset.Default);
+                effectWindow.CreateChildParticleSystem(currentSelectedObject, selectedParticleSystemPreset);
             }
             else
             {
@@ -443,7 +446,8 @@ public class EffectWindow : EditorWindow
                 GameObject newParentObject = new GameObject(parentObjectName);
                 newParentObject.transform.parent = currentSelectedObject.transform;
                 EffectWindow effectWindow = GetEffectWindowInstance();
-                effectWindow.CreateChildParticleSystem(newParentObject);
+                ParticleSystemPreset selectedParticleSystemPreset = (ParticleSystemPreset)EditorGUILayout.EnumPopup("粒子系统预设", ParticleSystemPreset.Default);
+                effectWindow.CreateChildParticleSystem(newParentObject, selectedParticleSystemPreset);
 
                 // 记录新创建的父级对象以便撤销/重做
                 Undo.RegisterCreatedObjectUndo(newParentObject, "Create Particle System Parent");
@@ -455,7 +459,8 @@ public class EffectWindow : EditorWindow
             // 如果没有选中的对象，则直接创建一个父级空物体和子级粒子系统  
             GameObject newParentObject = new GameObject(parentObjectName);
             EffectWindow effectWindow = GetEffectWindowInstance();
-            effectWindow.CreateChildParticleSystem(newParentObject);
+            ParticleSystemPreset selectedParticleSystemPreset = (ParticleSystemPreset)EditorGUILayout.EnumPopup("粒子系统预设", ParticleSystemPreset.Default);
+            effectWindow.CreateChildParticleSystem(newParentObject, selectedParticleSystemPreset);
 
             // 记录新创建的父级对象以便撤销/重做
             Undo.RegisterCreatedObjectUndo(newParentObject, "Create Particle System Parent");
@@ -467,14 +472,14 @@ public class EffectWindow : EditorWindow
         EffectWindow[] windows = Resources.FindObjectsOfTypeAll<EffectWindow>();
         return windows.Length > 0 ? windows[0] : null;
     }
-    private void CreateChildParticleSystem(GameObject parent)
+    private void CreateChildParticleSystem(GameObject parent, ParticleSystemPreset preset)
     {
         GameObject particleSystemObject = new GameObject(particleSystemName);
         particleSystemObject.transform.parent = parent.transform;
         ParticleSystem particleSystem = particleSystemObject.AddComponent<ParticleSystem>();
 
         // 应用粒子系统预设
-        ApplyParticleSystemPreset(ParticleSystemPreset.Default, customPresetPath);
+        ApplyParticleSystemPreset(preset, customPresetPath);
 
         // 记录新创建的游戏对象和粒子系统组件以便撤销/重做
         Undo.RegisterCreatedObjectUndo(particleSystemObject, "Create Particle System");
