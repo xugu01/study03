@@ -73,6 +73,7 @@ public class EffectWindow : EditorWindow
     }
     private void OnEnable()
     {
+        LoadPresets();
         // 自定义样式  
         headerStyle = new GUIStyle(EditorStyles.boldLabel);
         headerStyle.normal.textColor = EditorGUIUtility.isProSkin ? Color.white : Color.yellow;
@@ -89,7 +90,7 @@ public class EffectWindow : EditorWindow
             headerStyle.normal.textColor = Color.white;
             headerStyle.onNormal.textColor = Color.yellow;
         }
-        LoadPresets();
+        
     }
     private void LoadPresets()
     {
@@ -106,11 +107,11 @@ public class EffectWindow : EditorWindow
                 string materialPath;
                 if (customPresetPath != "")
                 {
-                    materialPath = $"{customPresetPath}/{preset.ToString()}";
+                    materialPath = $"{customPresetPath}/{preset}";
                 }
                 else
                 {
-                    materialPath = $"Materials/{preset.ToString()}";
+                    materialPath = $"Materials/{preset}";
                 }
 
                 Material material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
@@ -129,11 +130,11 @@ public class EffectWindow : EditorWindow
                 string particleSystemPath;
                 if (customPresetPath != "")
                 {
-                    particleSystemPath = $"{customPresetPath}/{preset.ToString()}";
+                    particleSystemPath = $"{customPresetPath}/{preset}";
                 }
                 else
                 {
-                    particleSystemPath = $"ParticleSystems/{preset.ToString()}";
+                    particleSystemPath = $"ParticleSystems/{preset}";
                 }
 
                 ParticleSystem particleSystem = AssetDatabase.LoadAssetAtPath<ParticleSystem>(particleSystemPath);
